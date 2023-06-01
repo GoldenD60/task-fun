@@ -1,86 +1,114 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Task Fun</title>
-</head>
-<body>
-  <h1>Scoreboard</h1>
-  <input type="text" id="nameInput" placeholder="Enter your name">
-  <button onclick="increaseScore()">Increase Score</button>
-  <ul id="scoreboard"></ul>
+  <head>
+    <title>Task Fun</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="index.css">
+  </head>
+  <body>
+    <input type="text" id="nameInput" placeholder="Enter your name">
+    <p></p>
+    <button onclick="increaseScore()">Finished Task</button>
+    <p></p>
+    <h1>Scoreboard</h1>
+    <ul id="scoreboard"></ul>
 
-  <script>
-    var getObjectByValue = function (array, key, value) {
-      return array.filter(function (object) {
-        return object[key] === value;
-      });
-    };
-    const socket = new WebSocket('ws://localhost:8080');
-    const scoreboard = document.getElementById('scoreboard');
-    let score = 0;
-    let name = '';
-
-    socket.onopen = (event) => {
-      console.log('Connected to the server');
-
-      // Restore the player's name from local storage
-      name = localStorage.getItem('playerName') || '';
-      document.getElementById('nameInput').value = name;
-    };
-
-    socket.onmessage = (event) => {
-      console.log('Received:', event.data);
-
-      // Parse the incoming message
-      const { type, data } = JSON.parse(event.data);
-
-      if (type === 'scoreUpdate') {
-        // Update the scoreboard
-        updateScoreboard(data);
-        mydat = getObjectByValue(data, "name", name)
-        if (mydat[0].score) {
-          score = mydat[0].score
+    <script>
+      var getObjectByValue = function (array, key, value) {
+        return array.filter(function (object) {
+          return object[key] === value;
+        });
+      };
+      function isJson(str) {
+        try {
+          JSON.parse(str);
+        } catch (e) {
+          return false;
         }
+        return true;
       }
-    };
+      const socket = new WebSocket('ws://localhost:8080');
+      const scoreboard = document.getElementById('scoreboard');
+      const input = document.getElementById('nameInput')
+      let score = -1;
+      let name = '';
+      let dat = []
 
-    function increaseScore() {
-      const input = document.getElementById('nameInput');
-      name = input.value.trim();
+      socket.onopen = (event) => {
+        console.log('Connected to the server');
 
-      if (name === '') {
-        alert('Please enter your name');
-        return;
-      }
-
-      // Increment the score
-      score++;
-
-      // Create a message object
-      const message = {
-        type: 'scoreUpdate',
-        name,
-        score
+        // Restore the player's name from local storage
+        name = localStorage.getItem('playerName') || '';
+        input.value = name;
       };
 
-      // Send the message to the server
-      socket.send(JSON.stringify(message));
+      socket.onmessage = (event) => {
+        console.log('Received:', event.data);
 
-      // Save the player's name to local storage
-      localStorage.setItem('playerName', name);
-    }
+        // Parse the incoming message
+        const { type, data } = JSON.parse(event.data);
+        dat = data
 
-    function updateScoreboard(data) {
-      // Clear the current scoreboard
-      scoreboard.innerHTML = '';
+        if (type === 'scoreUpdate') {
+          // Update the scoreboard
+          updateScoreboard(data);
+          mydat = getObjectByValue(data, "name", name)
+          if (mydat.length > 0) {
+            score = mydat[0].score
+          }
+        }
+      };
 
-      // Iterate over the data and create list items for each score entry
-      for (const entry of data) {
-        const listItem = document.createElement('li');
-        listItem.textContent = `${entry.name}: ${entry.score}`;
-        scoreboard.appendChild(listItem);
+      input.onchange = () => {
+        mydat = getObjectByValue(dat, "name", input.value)
+        if (mydat.length > 0) {
+          score = mydat[0].score
+        } else {
+          score = -1
+        }
       }
-    }
-  </script>
-</body>
+
+      function increaseScore() {
+        name = input.value.trim();
+
+        if (name === '') {
+          alert('Please enter your name');
+          return;
+        } else {
+          if (confirm('Please ask for your next task')) {
+            // Increment the score
+            score++;
+
+            // Create a message object
+            const message = {
+              type: 'scoreUpdate',
+              name,
+              score
+            };
+
+            // Send the message to the server
+            socket.send(JSON.stringify(message));
+
+            // Save the player's name to local storage
+            localStorage.setItem('playerName', name);
+          }
+        }
+      }
+
+      function updateScoreboard(data) {
+        // Sort the scoreboard data in descending order based on the score
+        const sortedData = data.sort((a, b) => b.score - a.score);
+
+        // Clear the current scoreboard
+        scoreboard.innerHTML = '';
+
+        // Iterate over the data and create list items for each score entry
+        for (const entry of data) {
+          const listItem = document.createElement('li');
+          listItem.textContent = `${entry.name}: ${entry.score}`;
+          scoreboard.appendChild(listItem);
+        }
+      }
+    </script>
+  </body>
 </html>

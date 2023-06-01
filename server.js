@@ -10,7 +10,7 @@ let scoreboardData = [];
 wss.on('connection', (ws) => {
   // Handle messages received from clients
   ws.on('message', (message) => {
-    console.log('Received:', message);
+    console.log('Received:', message.toString());
 
     // Parse the incoming message
     const { type, name, score } = JSON.parse(message);
